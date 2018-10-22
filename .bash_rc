@@ -1,0 +1,115 @@
+HISTSIZE= HISTFILESIZE=
+#increase bash history
+
+alias gg="~/.bash/google.sh"
+source ~/.bash/bosh.sh
+source ~/.bash/git.sh
+alias sl="ls"
+alias alert="osascript -e 'display notification \"The command is done\" with title \"Jobs Done!.\" sound name \"Sosumi\"'"
+export S3_AKI=REDACTED
+export S3_KEY=REDACTED
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOPATH/bin
+source ~/.bash/go.sh
+source ~/.bash/pathify.sh
+source ~/.bash/spin.sh
+source ~/.bash/safe_autocomplete.sh
+#!/bin/bash
+#
+# env/bashrc - Making bash feel like home
+#
+
+# VIM #################################################
+export EDITOR=vim
+
+# COLORS ##############################################
+export CLICOLOR=1 # Mac OSX
+
+# Command Aliases #####################################
+alias ll='ls -l'
+alias la='ls -la'
+alias lr='ls -ltr'
+if [[ -x /usr/bin/colordiff ]]; then
+	alias diff='/usr/bin/colordiff -u'
+else
+	alias diff='/usr/bin/diff -u'
+fi
+alias vgmem='valgrind --leak-check=full --show-reachable=yes'
+alias rss='newsbeuter'
+alias vo='vim -O'
+
+
+PROMPT_HOST=
+[ -f $HOME/.host  ] && PROMPT_HOST=$(cat $HOME/.host)
+[ -z $PROMPT_HOST ] && PROMPT_HOST=$(hostname -f | sed -e 's/\.niftylogic\.net$//')
+
+if [[ -x /sbin/ip ]]; then
+	PROMPT_ADDR=$(/sbin/ip addr show 2>/dev/null | awk '/inet.* scope global / { print $2; exit }')
+elif [[ -x /sbin/ifconfig ]]; then
+	PROMPT_ADDR=$(/sbin/ifconfig en0 2>/dev/null | awk '/inet / { print $2; exit }')
+else
+	PROMPT_ADDR="::unknown::"
+fi
+[ -z $PROMPT_ADDR ] || PROMPT_ADDR="$PROMPT_ADDR "
+
+PROMPT_TT=""
+type tt >/dev/null 2>&1
+if [[ $? == 0 ]]; then
+	PROMPT_TT=':%C[$(tt --prompt)]'
+fi
+
+PROMPT_SHLVL=""
+if [[ -z $TMUX && $SHLVL != 1 ]]; then
+	PROMPT_SHLVL="%C[sh${SHLVL}] "
+fi
+if [[ -n $TMUX && $SHLVL != 2 ]]; then
+	PROMPT_SHLVL="%C[sh$(( SHLVL - 1 ))] "
+fi
+
+PROMPT_GO=""
+if [[ -n ${GOENV} ]]; then
+	PROMPT_GO="%K[${GOENV}]|"
+fi
+
+#export PS1=$(echo "$PROMPT_SHLVL+$PROMPT_GO%B[\D{%%j+%%H:%%M:%%S}]:%Y[\!]:"'$(r=$?; test $r -ne 0 && echo "%R[$r]" || echo "%Y[$r]")'"$PROMPT_TT %M[$PROMPT_ADDR]%G[\u@$PROMPT_HOST] %B[\w\n]%G[→] " | $HOME/.bash/colorize);
+
+export PS1=$(echo "%G[\u@$PROMPT_ADDR]%B[\w\n]%G[→] " | $HOME/.bash/colorize);
+
+#type git >/dev/null 2>&1
+#if [[ $? == 0 ]]; then
+#	export PSGIT="%{%[\e[1;34m%]%b%[\e[00m%]:%[\e[1;33m%]%i%[\e[00m%]%}%{%[\e[1;31m%]%c%u%f%t%[\e[00m%]) %}$PS1 "
+#	export PROMPT_COMMAND='export PS1=$($HOME/.bash/gitprompt c=\+ u=\* statuscount=1)'
+#fi
+
+case $TERM in
+screen)
+	if [[ -n $PROMPT_COMMAND ]]; then
+		export PROMPT_COMMAND="$PROMPT_COMMAND;";
+	fi
+	export PROMPT_COMMAND=$PROMPT_COMMAND'echo -ne "\033]2;${USER}@${PROMPT_HOST} ${PROMPT_ADDR}${PWD}\033k${PROMPT_HOST}\033\\"'
+	;;
+esac
+
+export LISP_PS1=$(echo -e "\033[1;36m🦄\033[0m ")' '
+
+echo $PATH | grep -q "$HOME/bin";
+if [[ $? != 0 ]]; then
+	PATH="$PATH:$HOME/bin"
+fi
+
+if [[ -d $HOME/sw ]]; then
+	PATH="$PATH:$HOME/sw/sbin:$HOME/sw/bin"
+	export LD_LIBRARY_PATH="$HOME/sw/lib"
+	export LDFLAGS="-L$HOME/sw/lib"
+	export CFLAGS="-I$HOME/sw/include"
+	export CPPFLAGS=$CFLAGS
+	export PKG_CONFIG_PATH="$HOME/sw/lib/pkgconfig"
+fi
+
+for FILE in $HOME/env/bash/*; do
+	[ -f $FILE ] && source $FILE
+done
+
+function title {
+    echo -ne "\033]0;"$*"\007"
+}
