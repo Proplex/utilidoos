@@ -1,3 +1,3 @@
-#!/bin/sh
-ls "$@"
+#!/bin/bash
+command ls "$@"
 clear
